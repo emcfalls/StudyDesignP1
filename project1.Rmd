@@ -1,0 +1,24 @@
+---
+title: "STA522 Project 1"
+author: "Holly Cui"
+date: "2023-10-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library, include=FALSE}
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(survey)
+```
+
+```{r data}
+county <- read_excel("/Users/hollycui/Desktop/STA\ 522/Project1/county.xlsx", col_names = TRUE)
+```
+
