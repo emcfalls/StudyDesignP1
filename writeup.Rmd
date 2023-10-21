@@ -70,7 +70,7 @@ from it due to there being no variance. Therefore, in order to have D.C. in our
 sample, we purposefully included it. 
 
 We used a sample size of # counties. The breakdown of the number of counties
-samples by state is as follows:
+sampled by state is as follows:
 
 State         | nh           |State         | nh        | State      | nh                     
 ------------- | -------------| -------------| ----------|----------- | -------
