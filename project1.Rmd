@@ -53,6 +53,12 @@ clean_county <- county %>%
   
 ## Sample Size
 
+### Method 1 - Standard
+
+A good maximum sample size is usually around 10% of the population. Thus, we define our sample size as $n = 0.1N = 314$. 
+
+### Method 2 - Fancy but not applicable:
+
 Sample size for known population: 
 $$n = \frac{\frac{Z^2 \times p(1-p)}{e^2}}{1+\frac{Z^2 \times p(1-p)}{e^2N}}$$
 where: 
@@ -90,26 +96,27 @@ clean_state <- county %>%
 
 ```{r}
 # calculate denominator for optimal allocation
+n = 314
 denominator = sum(clean_state$Nh * clean_state$Sh)
 
 # summarize nh for each state strata
 state_strata <- clean_state %>%
-  mutate(nh_true = (n-1)*Nh*Sh / denominator,
-         nh_round = round(nh_true), 
-         diff = nh_round - nh_true) 
+  mutate(nh_round = round((n-1)*Nh*Sh / denominator)) %>%
+  mutate(nh = ifelse(nh_round == 0, nh_round+1, nh_round))
+         #nh_round = round(nh_true), 
+         #diff = nh_round - nh_true) 
 
 # check rounding issue (which doesn't guarantee final n = 341)
-state_strata %>%
-  arrange(desc(diff)) %>%
-  head(sum(state_strata$nh_round) - (n-1))
+# state_strata %>%
+#   arrange(desc(diff)) %>%
+#   head(sum(state_strata$nh_round) - (n-1))
 
 # fix rounding & get final sampling schema
 state_nh <- state_strata %>%
-  mutate(nh_round = ifelse(state == "Tennessee", 6, nh_round), 
-         nh_round = ifelse(state == "Pennsylvania", 9, nh_round), 
-         nh_round = ifelse(state == "Illinois", 27, nh_round)) %>%
-  select(state, Nh, Sh, nh_round) %>%
-  rename(nh = nh_round)
+  # mutate(nh_round = ifelse(state == "Tennessee", 6, nh_round), 
+  #        nh_round = ifelse(state == "Pennsylvania", 9, nh_round), 
+  #        nh_round = ifelse(state == "Illinois", 27, nh_round)) %>%
+  select(state, Nh, Sh, nh)
 ```
 
 
@@ -134,7 +141,7 @@ sample = clean_county %>%
   filter(id %in% final_sample)
 sample
 
-#write.csv(sample, file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample.csv", row.names = FALSE)
+write.csv(sample, file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample.csv", row.names = FALSE)
 ```
 
 
