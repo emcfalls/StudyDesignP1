@@ -1,0 +1,118 @@
+---
+title: "Project 1"
+author: "Elyse McFalls and Holly Cui"
+date: "2023-10-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Data
+
+This project seeks to understand facets the United States using county-level 
+data. Specifically, we are interested in examining the population, the percentage of Hispanic and 
+Latinx residents, and partisanship. Data on the states and counties in the 
+United States were collected from the wikipedia page "List of states and 
+territories of the United States," which contains the 2020 census estimates for 
+each county's population and area 
+[Wikipedia article link](https://en.wikipedia.org/wiki/List_of_United_States_counties_and_county_equivalents). 
+More detailed data for each county was extracted from their respective wikipedia 
+page (i.e., data for DeKalb County, AL: 
+[Wikipedia article link](https://en.wikipedia.org/wiki/DeKalb_County,_Alabama)). 
+The pages for each county usually contain census data from the past few 
+decades. 
+
+# Sampling Procedure
+
+## Sampling Design
+
+In deciding on the sampling design, we wanted to chose a framework that best fit 
+the goals of this project. This framework would ideally give us a representative 
+sample of the counties in the U.S. that bears in mind the variedness of each 
+state. Therefore, we decided on a simple stratified sample with each of the 
+50 states serving as individual stratum. Moreover, we are using optimally allocation to 
+determine how many counties to sample from each state. The District of Columbia, 
+which operates like a city, state, and county, will be treated as a county and 
+be sampled with 100% certainty [source](https://statehood.dc.gov/page/faq#:~:text=The%20Constitution%20dictates%20that%20the,4%20million%20people%20and%20growing.).
+
+By taking a stratified sample, we are ensuring that every state in the U.S. 
+is being accounted for. Stratified samples also provide estimates with lower 
+standard errors when there is more between variance than within variance. We 
+expect this to be the case with counties in each state. For instance, counties 
+in Virginia are expected to exhibit more similarities among themselves than when 
+compared to counties in Wyoming. However, we also believed that the variance of 
+our variables of interest within each state may differ by state. Consider a 
+state like North Dakota where most of the counties are rural compared to a state 
+like North Carolina that has a mixture of rural and urban areas. We'd anticipate 
+that county-level population in North Dakota would be more uniform and the same
+statistics in North Carolina would be more varied.
+[source](https://mtgis-portal.geo.census.gov/arcgis/apps/storymaps/collections/189aa1dbd64c4c81b3b4a2b71124f6c6?item=1). 
+Therefore, instead of sampling proportional to size, we opted to for an optimal 
+allocation framework (equation 1). This way, we would sample more from states 
+that have high variances for our variables of interest. We decided to focus on 
+the populations of each county to optimally allocate the samples of each 
+stratum. This decision was mainly due to the lack of data for our other 
+variables of interest for each county.
+
+$$\text{Eq. 1}: n_h = n \frac {N_hS_h/N} {\sum^H_{h=1}N_hS_h/N}$$
+$$\text{where } S_h \text{ is the variance of the county populations for each state h}$$
+
+Moreover, taking a simple random sample of counties allows us to get a 
+representative sample from each state. We considered taking a sample 
+proportional to size, but we felt it was unnecessary to prioritize more 
+populated ares. We also decided to sample the District of Columbia with 100% 
+certainty because, as the nation's capital, it is an important region and it 
+functions like a state and a county. However, if we treated it like a 
+state with one county, our optimal allocation formula would assign no samples 
+from it due to there being no variance. Therefore, in order to have D.C. in our 
+sample, we purposefully included it. 
+
+We used a sample size of # counties. The breakdown of the number of counties
+samples by state is as follows:
+
+State         | nh           |State         | nh        | State      | nh                     
+------------- | -------------| -------------| ----------|----------- | -------
+Alabama|                     | Louisiana|               |Ohio|
+Alaska|                      | Maine|                   |Oklahoma|
+Arizona|                     | Maryland|                |Oregon|
+Arkansas|                    | Massachusetts|           |Pennsylvania|
+California|                  | Michigan|                |Rhode Island|
+Colorado|                    | Minnesota|               |South Carolina|       
+Connecticut|                 | Mississippi|             |South Dakota |                 
+Delaware|                    | Missouri|                |Tennessee|
+Florida|                     | Montana|                 |Texas |                  
+Georgia|                     | Nebraska|                |Utah|
+Hawaii|                      | Nevada |                 |Vermont|
+Idaho|                       | New Hampshire|           |Virginia |     
+Illinois|                    | New Jersey|              |Washington|
+Indiana|                     | New Mexico|              |West Virginia|
+Iowa|                        | New York|                |Wisconsin|
+Kansas|                      | North Carolina|          |Wyoming|
+Kentucky|                    | North Dakota|            |District of Columbia*| 1
+
+*certainty primary sampling unit
+
+
+
+
+
+
+
+
+
+
+
+
+## Weights
+
+# Results
+
+## Average Population Density per County in the U.S. in 2020
+
+## Amount of Hispanics and Latinos in the U.S. in 2020
+
+## Change in the Amount of Hispanics and Latinos in the U.S. between 2010 and 2020
+
+## Partisan Breakdown in the U.S. in 2020
