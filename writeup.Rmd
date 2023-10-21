@@ -34,8 +34,8 @@ sample of the counties in the U.S. that bears in mind the variedness of each
 state. Therefore, we decided on a simple stratified sample with each of the 
 50 states serving as individual stratum. Moreover, we are using optimally allocation to 
 determine how many counties to sample from each state. The District of Columbia, 
-which operates like a city, state, and county, will be treated as a county and 
-be sampled with 100% certainty [source](https://statehood.dc.gov/page/faq#:~:text=The%20Constitution%20dictates%20that%20the,4%20million%20people%20and%20growing.).
+which operates like a city, state, and county, was treated as a state and a county. It was
+sampled with 100% certainty [source](https://statehood.dc.gov/page/faq#:~:text=The%20Constitution%20dictates%20that%20the,4%20million%20people%20and%20growing.).
 
 By taking a stratified sample, we are ensuring that every state in the U.S. 
 is being accounted for. Stratified samples also provide estimates with lower 
