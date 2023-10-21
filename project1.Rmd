@@ -22,3 +22,129 @@ library(survey)
 county <- read_excel("/Users/hollycui/Desktop/STA\ 522/Project1/county.xlsx", col_names = TRUE)
 ```
 
+## Study Design
+
+Stratified sampling by 50 states with optimal allocation. 
+
+  - index: row number
+  - strata: 50 state* (remove territories + DC as certainty PSU)
+  - N: 3246 --> 3144 (after removal)
+  - n: 342 --> need explanation*
+  - Nh: # of counties in each state
+  - nh: # of sampled counties in each state
+  
+  
+## Data Cleaning
+
+```{r}
+# remove US territories
+US_territories <- c("American Samoa", "Guam", "Northern Mariana Islands", 
+                    "Puerto Rico", "U.S. Minor Outlying Islands", 
+                    "Virgin Islands (U.S.)")
+
+clean_county <- county %>%
+  filter(!state %in% US_territories) %>%
+  group_by(state) %>%
+  mutate(Nh = n(), Sh = sd(pop)) %>%
+  ungroup() %>%
+  mutate(id = row_number())
+```
+  
+  
+## Sample Size
+
+Sample size for known population: 
+$$n = \frac{\frac{Z^2 \times p(1-p)}{e^2}}{1+\frac{Z^2 \times p(1-p)}{e^2N}}$$
+where: 
+
+  - $Z$: Z-score for the 95% confidence intervals
+  - $p$: Standard deviation of how much individual sample data points deviate from the average population
+  - $e$: Designated margin of error 
+  - $N$: Population size
+  
+```{r}
+# define parameters
+Z = 1.96 # for 95% CI
+p = 0.5 # default value for expected variance
+e = 0.05 # usually around 2% to 5% based on accuracy
+N = nrow(clean_county)
+
+# calculate sample size n
+n = round((Z^2 * p*(1-p) / e^2) / (1 + (Z^2 * p*(1-p) / (e^2 * N)))) # 342
+```
+
+
+## Optimal Allocation
+
+To calculate the optimal allocation of n=343, we need to adopt the expression as follows:
+$$n_h = n\times\frac{\frac{N_hS_h}{N}}{\frac{\Sigma^{H}_{h=1}N_hS_h}{N}}$$
+```{r}
+# state-level strata statistics (without DC - certainty PSU)
+clean_state <- county %>%
+  filter(!state %in% US_territories) %>%
+  filter(state != "District of Columbia") %>%
+  group_by(state) %>%
+  summarise(Nh = n(), Sh = sd(pop)) %>%
+  ungroup()
+```
+
+```{r}
+# calculate denominator for optimal allocation
+denominator = sum(clean_state$Nh * clean_state$Sh)
+
+# summarize nh for each state strata
+state_strata <- clean_state %>%
+  mutate(nh_true = (n-1)*Nh*Sh / denominator,
+         nh_round = round(nh_true), 
+         diff = nh_round - nh_true) 
+
+# check rounding issue (which doesn't guarantee final n = 341)
+state_strata %>%
+  arrange(desc(diff)) %>%
+  head(sum(state_strata$nh_round) - (n-1))
+
+# fix rounding & get final sampling schema
+state_nh <- state_strata %>%
+  mutate(nh_round = ifelse(state == "Tennessee", 6, nh_round), 
+         nh_round = ifelse(state == "Pennsylvania", 9, nh_round), 
+         nh_round = ifelse(state == "Illinois", 27, nh_round)) %>%
+  select(state, Nh, Sh, nh_round) %>%
+  rename(nh = nh_round)
+```
+
+
+## Sampling
+
+```{r}
+set.seed(123)
+
+sample_county = c()
+for (i in 1:nrow(state_nh)) {
+  sample_by_state = sample(clean_county$id[clean_county$state == state_nh$state[i]], 
+                           state_nh$nh[i])
+  sample_county = c(sample_county, sample_by_state)
+}
+
+# add in DC (certainty PSU)
+final_sample = c(sample_county, 322)
+```
+
+```{r}
+sample = clean_county %>%
+  filter(id %in% final_sample)
+sample
+
+#write.csv(sample, file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
