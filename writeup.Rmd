@@ -106,10 +106,13 @@ sample, we purposefully included it.
 
 ## Sample Sizes and Weights
 
-We used an initial sampled size of 314, which is 10% of our population. However, the output of the optimal allocation formula gave us some states with no counties sampled. To have all states accounted for, we rounded any calculated nh values less than 0.5 to 1. This left us with a sample of 317. The weight for 
+We used an initial sampled size of 314, which is 10% of our population. However, 
+the output of the optimal allocation formula gave us some states with no counties 
+sampled. To have all states accounted for, we rounded any calculated nh values 
+less than 0.5 to 1. This left us with a sample of 317. The weight for 
 each county is the total number of counties sampled from its respective state 
 divided by the total number of counties in that state. For instance, Alabama has 
-67 counties and 3 of them were sampled. Therefore, its weight is 0.045. The 
+67 counties and 3 of them were sampled. Therefore, its weight is 22.33. The 
 weight for D.C. is 1 since it is a certainty primary sampling unit. 
 
 
@@ -161,7 +164,7 @@ sample = clean_county %>%
 
 ```{r}
 # excluding D.C. for now, its weight is 1
-weights_df <- data.frame(state = state_nh$state, weight = state_nh$nh/state_nh$Nh)
+weights_df <- data.frame(state = state_nh$state, weight = state_nh$Nh/state_nh$nh)
 sample <- merge(sample,weights_df, by = "state")
 ```
 
