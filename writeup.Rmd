@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-# Data
+# Data and Sampling Frame
 
 This project seeks to understand facets the United States using county-level 
 data. Specifically, we are interested in examining the population, the percentage of Hispanic and 
@@ -22,9 +22,14 @@ More detailed data for each county was extracted from their respective wikipedia
 page (i.e., data for DeKalb County, AL: 
 [Wikipedia article link](https://en.wikipedia.org/wiki/DeKalb_County,_Alabama)). 
 The pages for each county usually contain census data from the past few 
-decades. 
+decades.
+
+All counties from the 50 U.S. states and the District of Columbia were included
+in the sampling frame. We did not include counties from U.S. territories because
+we are primarily interested in regions that are enfranchised. 
 
 # Sampling Procedure
+
 
 ## Sampling Design
 
@@ -69,8 +74,24 @@ state with one county, our optimal allocation formula would assign no samples
 from it due to there being no variance. Therefore, in order to have D.C. in our 
 sample, we purposefully included it. 
 
-We used a sample size of # counties. The breakdown of the number of counties
-sampled by state is as follows:
+## Sample Sizes 
+
+We calculated a sample size of 342 counties using the sample size for a known 
+population formula with a 95% confidence interval (equation 2). We also set the 
+error to be 5% to coincide with our confidence interval and the population 
+proportion to 0.5 for the worst case-scenario estimate. 
+
+
+$$\text{Eq. 2: }n = \frac{\frac{Z^2 \times p(1-p)}{e^2}}{1+\frac{Z^2 \times p(1-p)}{e^2N}}$$
+
+$\text{where }$
+
+  * $Z$: Z-score for the 95% confidence intervals
+  * $p$: Population proportion of ?
+  * $e$: Designated margin of error 
+  * $N$: Population size (3,113 counties in the States + D.C.)
+
+The breakdown of the number of counties sampled by state is as follows:
 
 State         | nh           |State         | nh        | State      | nh                     
 ------------- | -------------| -------------| ----------|----------- | -------

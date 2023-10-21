@@ -19,7 +19,7 @@ library(survey)
 ```
 
 ```{r data}
-county <- read_excel("/Users/hollycui/Desktop/STA\ 522/Project1/county.xlsx", col_names = TRUE)
+county <- read_excel("county.xlsx", col_names = TRUE)
 ```
 
 ## Study Design
@@ -117,6 +117,13 @@ state_nh <- state_strata %>%
   #        nh_round = ifelse(state == "Pennsylvania", 9, nh_round), 
   #        nh_round = ifelse(state == "Illinois", 27, nh_round)) %>%
   select(state, Nh, Sh, nh)
+```
+
+## Weights 
+
+```{r}
+# excluding D.C. for now, its weight is 1
+weights <- state_nh$nh/state_nh$Nh
 ```
 
 
