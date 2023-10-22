@@ -151,11 +151,66 @@ sample
 write.csv(sample, file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample.csv", row.names = FALSE)
 ```
 
+```{r}
+sample <- sample %>%
+  arrange(county)
+```
 
 
+# Getting Hispanic Data
+
+```{r}
+# 2020
+hispanic_data <- read.csv('race_data.csv') %>% 
+  filter(YEAR == 1, AGEGRP == 0) %>%
+  select(STNAME, CTYNAME, H_MALE, H_FEMALE) 
+  
+head(hispanic_data)
+```
+
+```{r}
+# remove county from names
+# weird ch in new mexico county name, not in sample
+hispanic_data <- hispanic_data[-c(1805),]
+hispanic_data$CTYNAME <- sub('County', '', hispanic_data$CTYNAME)
+
+hispanic_data <- hispanic_data %>%
+  mutate(CTYNAME = trimws(CTYNAME, which = "right"),
+         n_hispanic = H_MALE + H_FEMALE,
+         st_cty = paste(STNAME, CTYNAME, sep="")) 
+```
 
 
+```{r}
+# adding county state col to sample data
+sample$st_cty <- paste(sample$state, sample$county, sep="")
+```
 
+
+```{r}
+# filtering unique state county pairs (lost the city/counties)
+some_his_data <- hispanic_data%>%
+  filter(st_cty %in% sample$st_cty)
+```
+
+```{r}
+# the census data has hawaii, sf, 'Wrangell City and Borough', 'Emporia city', 'Salem city', 'Radford city', and 'De Witt'
+sample[!(sample$county %in% some_his_data$CTYNAME),]
+```
+
+```{r}
+his_data_2020 <- hispanic_data%>%
+  filter(st_cty %in% sample$st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
+                                                    'Wrangell City and Borough', 
+                                                    'Emporia city', 'Salem city'
+                                                    , 'Radford city', 'De Witt')) %>%
+  arrange(CTYNAME)
+```
+
+
+```{r}
+sample$hispanic_pop_2020 <- his_data_2020$n_hispanic
+```
 
 
 
