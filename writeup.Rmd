@@ -26,21 +26,21 @@ county <- read_excel("county.xlsx", col_names = TRUE)
 ```
 
 This project seeks to understand facets the United States using county-level 
-data. Specifically, we are interested in examining the population, the percentage of Hispanic and 
-Latinx residents, and partisanship. Data on the states and counties in the 
-United States were collected from the wikipedia page "List of states and 
-territories of the United States," which contains the 2020 census estimates for 
-each county's population and area 
-[Wikipedia article link](https://en.wikipedia.org/wiki/List_of_United_States_counties_and_county_equivalents). 
-More detailed data for each county was extracted from their respective wikipedia 
-page (i.e., data for DeKalb County, AL: 
-[Wikipedia article link](https://en.wikipedia.org/wiki/DeKalb_County,_Alabama)). 
-The pages for each county usually contain census data from the past few 
-decades.
+data. Specifically, we are interested in examining the population density and 
+demographic information Data on the states and counties in the United States 
+were collected from the wikipedia page "List of states and territories of the 
+United States," which contains the 2020 census estimates for each county's 
+population and area 
+([source](https://en.wikipedia.org/wiki/List_of_United_States_counties_and_county_equivalents)). 
+More detailed data for each county was extracted from the Unites States Census 
+Bureau and MIT's Election Data and Science Labs (MEDSL). The data from the 
+Census contained demographic estimates for each county from 2010 to 2020
+([source](https://www.census.gov/programs-surveys/popest/technical-documentation/research/evaluation-estimates/2020-evaluation-estimates/2010s-county-detail.html)). MEDSL, on the other hand, had data on political participation by county from 2000 to 2020 ([source](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ)).
 
 All counties from the 50 U.S. states and the District of Columbia were included
 in the sampling frame. We did not include counties from U.S. territories because
-we are primarily interested in regions that are enfranchised. 
+we are primarily interested in regions that are enfranchised. We also focused in 
+data from the years 2010 and 2020 for the analyses. 
 
 ```{r}
 # removing US territories
@@ -67,7 +67,7 @@ state. Therefore, we decided on a simple stratified sample with each of the
 50 states serving as individual stratum. Moreover, we are using optimally allocation to 
 determine how many counties to sample from each state. The District of Columbia, 
 which operates like a city, state, and county, was treated as a state and a county. It was
-sampled with 100% certainty [source](https://statehood.dc.gov/page/faq#:~:text=The%20Constitution%20dictates%20that%20the,4%20million%20people%20and%20growing.).
+sampled with 100% certainty ([source](https://statehood.dc.gov/page/faq#:~:text=The%20Constitution%20dictates%20that%20the,4%20million%20people%20and%20growing.)).
 
 By taking a stratified sample, we are ensuring that every state in the U.S. 
 is being accounted for. Stratified samples also provide estimates with lower 
@@ -85,8 +85,9 @@ Therefore, instead of sampling proportional to size, we opted to for an optimal
 allocation framework (equation 1). This way, we would sample more from states 
 that have high variances for our variables of interest. We decided to focus on 
 the populations of each county to optimally allocate the samples of each 
-stratum. This decision was mainly due to the lack of data for our other 
-variables of interest for each county.
+stratum. We expect population size to be related to demographics. Therefore, 
+this framework will reduce the variance in our population estimates and likely 
+the variance in our demographic related estimates as well.
 
 $$\text{Eq. 1}: n_h = n \frac {N_hS_h/N} {\sum^H_{h=1}N_hS_h/N}$$
 $$\text{where N is the total number of counties in the population, n is the sample size,}$$
@@ -109,10 +110,11 @@ sample, we purposefully included it.
 We used an initial sampled size of 314, which is 10% of our population. However, 
 the output of the optimal allocation formula gave us some states with no counties 
 sampled. To have all states accounted for, we rounded any calculated nh values 
-less than 0.5 to 1. This left us with a sample of 317. The weight for 
-each county is the total number of counties sampled from its respective state 
-divided by the total number of counties in that state. For instance, Alabama has 
-67 counties and 3 of them were sampled. Therefore, its weight is 22.33. The 
+less than 0.5 to 1. This left us with a sample of 317. 
+
+The weight for each county is the total number of counties in its respective state 
+divided by the number of counties state. For instance, Alabama has 
+67 counties and 3 of them were sampled. Therefore, its weight was 22.33. The 
 weight for D.C. is 1 since it is a certainty primary sampling unit. 
 
 
