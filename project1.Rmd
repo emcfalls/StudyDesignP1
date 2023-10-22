@@ -16,10 +16,11 @@ library(dplyr)
 library(ggplot2)
 library(readxl)
 library(survey)
+library(writexl)
 ```
 
 ```{r data}
-county <- read_excel("county.xlsx", col_names = TRUE)
+county <- read_excel("/Users/hollycui/Desktop/STA\ 522/Project1/county.xlsx", col_names = TRUE)
 ```
 
 ## Study Design
@@ -119,13 +120,6 @@ state_nh <- state_strata %>%
   select(state, Nh, Sh, nh)
 ```
 
-## Weights 
-
-```{r}
-# excluding D.C. for now, its weight is 1
-weights <- state_nh$nh/state_nh$Nh
-```
-
 
 ## Sampling
 
@@ -151,66 +145,149 @@ sample
 #write.csv(sample, file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample.csv", row.names = FALSE)
 ```
 
+## Weights & fpc (=Nh)
+
 ```{r}
-sample <- sample %>%
-  mutate(st_cty = paste(state, county, sep="")) %>%
-  arrange(county)
+# excluding D.C. for now, its weight is 1
+sample_final <- sample %>%
+  left_join(state_nh, by = c("state", "Nh", "Sh")) %>%
+  select(-id) %>%
+  mutate(weights = Nh/nh,
+         pop_density = pop/area,
+         county = ifelse(grepl("city", county, ignore.case = TRUE),
+                         sub(",.*", "", county),
+                         county))
+
+#write_xlsx(sample_final, "/Users/hollycui/Desktop/STA\ 522/Project1/sample_final.xlsx")
 ```
 
 
-# Getting Hispanic Data 
+## Collect County-Level Data
 
-## 2020
+  - Matching with FIPS code (change Northwest Hills Planning Region -> Litchfield)
+```{r}
+# use FIPS for matching
+fips <- read.csv("/Users/hollycui/Desktop/STA\ 522/Project1/countyfipstool20190120.csv")
+```
+
+```{r}
+most_match <- sample_final %>%
+  left_join(fips, by = join_by("county" == "cname", "state" == "sname")) %>%
+  select(-c(sab, sid, sfips, saint, cfips))
+
+# manually source missing values
+# write_xlsx(most_match, "/Users/hollycui/Desktop/STA\ 522/Project1/sample_match.xlsx")
+```
+
+```{r}
+sample_match <- read_excel("/Users/hollycui/Desktop/STA\ 522/Project1/sample_match.xlsx", col_names = TRUE)
+```
+
+  - Voting Data
+```{r}
+# politic votings dataset
+vote <- read.csv("/Users/hollycui/Desktop/STA\ 522/Project1/countypres_2000-2020.csv")
+```
+
+```{r}
+# create vote dataset by party and county
+third_party <- c("OTHER", "GREEN", "LIBERTARIAN")
+
+vote_by_party <- vote %>%
+  filter(year == 2020) %>%
+  select(state, state_po, county_name, county_fips, candidate, party, candidatevotes, totalvotes) %>%
+  mutate(party_group = case_when(
+    party %in% third_party ~ "THIRD",
+    .default = party
+  )) %>%
+  select(-c(party, candidate)) %>%
+  group_by(state, county_name, party_group) %>%
+  summarise(votes = sum(candidatevotes), .groups = "drop")
+
+# clean original data
+vote_select <- vote %>%
+  filter(year == 2020) %>%
+  mutate(party_group = case_when(
+    party %in% third_party ~ "THIRD",
+    .default = party
+  )) %>%
+  select(state, state_po, county_name, county_fips, party_group, totalvotes) %>%
+  distinct() # remove duplicate rows
+
+# join back
+clean_vote <- vote_by_party %>%
+  left_join(vote_select, by = join_by(state, county_name, party_group)) %>%
+  select(state, state_po, county_name, county_fips, party_group, votes, totalvotes) %>%
+  pivot_wider(names_from = party_group, values_from = votes) %>%
+  mutate(county_fips = ifelse(state_po == "DC", 11001, county_fips))
+```
+
+```{r}
+# join final voting results
+sample_w_vote <- sample_match %>%
+  left_join(clean_vote, by = join_by("fips" == "county_fips")) %>%
+  # manual fix Wrangell data based on local government result
+  mutate(DEMOCRAT = ifelse(county == "Wrangell", 171, DEMOCRAT), 
+         REPUBLICAN = ifelse(county == "Wrangell", 526, REPUBLICAN), 
+         THIRD = ifelse(county == "Wrangell", 33, THIRD), 
+         totalvotes = ifelse(county == "Wrangell", 730, totalvotes)) %>%
+  select(-c(state.y, state_po, county_name)) %>%
+  rename(state = state.x)
+```
+
+ - Hispanic 2020 Data
+ 
+  - 2020
 
 ```{r}
 # estimates 7/1/2020
-hispanic_data_2020 <- read.csv('demo_2010_2020.csv') %>% 
+hispanic_data_2020 <- read.csv('/Users/hollycui/Desktop/STA\ 522/Project1/demo_2010_2020.csv') %>% 
   filter(YEAR == 13, AGEGRP == 0) %>%
   select(STNAME, CTYNAME, H_MALE, H_FEMALE) 
-  
-head(hispanic_data_2020)
 ```
+
 ```{r}
-# remove county from names
+# remove "County" from names
 # weird ch in new mexico county name, not in sample
 hispanic_data_2020 <- hispanic_data_2020[-c(1804),]
 hispanic_data_2020$CTYNAME <- sub('County', '', hispanic_data_2020$CTYNAME)
 ```
 
 ```{r}
-# the census data does not have Northwest Hills Planning Region
-sample[!(sample$county %in% hispanic_sample_2020$CTYNAME),]
-```
+sample_st_cty <- (sample %>% mutate(st_cty = paste(state, county, sep="")))$st_cty
 
-```{r}
-hispanic_data_2020 %>%
-  filter(STNAME == 'Connecticut')
-```
-
-```{r}
 # keep counties in the sample
 hispanic_sample_2020 <- hispanic_data_2020 %>%
   mutate(CTYNAME = trimws(CTYNAME, which = "right"),
          n_hispanic = as.numeric(H_MALE) + as.numeric(H_FEMALE),
          st_cty = paste(STNAME, CTYNAME, sep="")) %>%
-  filter(st_cty %in% sample$st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
+  filter(st_cty %in% sample_st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
                                                     'Wrangell City and Borough', 
-                                                    'Emporia city', 'Salem city'
-                                                    , 'Radford city', 'De Witt')) %>%
-  arrange(CTYNAME)
+                                                    'Emporia city', 'Salem city',
+                                                    'Radford city', 'De Witt',
+                                                    'Litchfield')) %>%
+  # rename county names
+  mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
+         CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
+  
 ```
-
 
 ```{r}
-# removing ct county, adding data to sample df
-sample <- sample[-c(204), ]
-sample$hispanic_pop_2020 <- hispanic_sample_2020$n_hispanic
+sample_w_hisp2020 <- sample_w_vote %>%
+  mutate(state = ifelse(state == "Hawaiʻi", "Hawaii", state)) %>%
+  left_join(hispanic_sample_2020, by = join_by("state" == "STNAME", 
+                                               "county" == "CTYNAME")) %>%
+  select(-c(H_MALE, H_FEMALE, st_cty)) %>%
+  rename(hisp_2020 = n_hispanic) %>%
+  relocate(hisp_2020, .after = "pop_density")
 ```
 
 
-## 2010
-
-
+  - 2010
+    
 ```{r}
 # estimates 7/1/2010
 hispanic_data_2010 <- read.csv('demo_2010_2020.csv') %>% 
@@ -234,14 +311,133 @@ hispanic_sample_2010 <- hispanic_data_2010 %>%
   mutate(CTYNAME = trimws(CTYNAME, which = "right"),
          n_hispanic = as.numeric(H_MALE) + as.numeric(H_FEMALE),
          st_cty = paste(STNAME, CTYNAME, sep="")) %>%
-  filter(st_cty %in% sample$st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
+  filter(st_cty %in% sample_st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
                                                     'Wrangell City and Borough', 
-                                                    'Emporia city', 'Salem city'
-                                                    , 'Radford city', 'De Witt')) %>%
-  arrange(CTYNAME)
+                                                    'Emporia city', 'Salem city',
+                                                    'Radford city', 'De Witt',
+                                                    'Litchfield')) %>%
+    # rename county names
+  mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
+         CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
 ```
 
 
 ```{r}
-sample$hispanic_pop_2010 <- hispanic_sample_2010$n_hispanic
+sample_w_hisp2010 <- sample_w_hisp2020 %>%
+  left_join(hispanic_sample_2010, by = join_by("state" == "STNAME", 
+                                               "county" == "CTYNAME")) %>%
+  select(-c(H_MALE, H_FEMALE, st_cty)) %>%
+  rename(hisp_2010 = n_hispanic) %>%
+  relocate(hisp_2010, .after = "hisp_2020")
 ```
+
+
+  - Q5 exploration: Aging of population (estimate proportion of age 65+ in 2020 and 2010)
+  
+    - Get 2010 population data by county:
+```{r}
+pop_2010 <- read.csv('demo_2010_2020.csv') %>% 
+  filter(YEAR == 3 & AGEGRP == 0) %>%
+  select(STNAME, CTYNAME, TOT_POP)
+
+head(pop_2010)
+```
+```{r}
+# remove county from names
+# weird ch in new mexico county name, not in sample
+pop_2010 <- pop_2010[-1804,]
+pop_2010$CTYNAME <- sub('County', '', pop_2010$CTYNAME)
+```
+
+```{r}
+# keep counties in the sample
+pop_sample_2010 <- pop_2010 %>%
+  mutate(CTYNAME = trimws(CTYNAME, which = "right"),
+         pop.2010 = as.numeric(TOT_POP),
+         st_cty = paste(STNAME, CTYNAME, sep="")) %>%
+  filter(st_cty %in% sample_st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
+                                                    'Wrangell City and Borough', 
+                                                    'Emporia city', 'Salem city',
+                                                    'Radford city', 'De Witt',
+                                                    'Litchfield')) %>%
+    # rename county names
+  mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
+         CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
+
+# join back
+sample_w_pop2010 <- sample_w_hisp2010 %>%
+  left_join(pop_sample_2010, by = join_by("state" == "STNAME", 
+                                          "county" == "CTYNAME")) %>%
+  select(-c(TOT_POP, st_cty)) %>%
+  relocate(pop.2010, .after = "pop")
+```
+
+    - Get 65+ age group by county:
+    
+```{r}
+age_65 <- read.csv('demo_2010_2020.csv') %>% 
+  filter(YEAR %in% c(3, 13) & AGEGRP >= 14) %>%
+  select(STNAME, CTYNAME, YEAR, AGEGRP, TOT_POP)
+  
+head(age_65)
+```
+
+```{r}
+# remove county from names
+# weird ch in new mexico county name, not in sample
+age_65 <- age_65[-c(18031:18040),]
+age_65$CTYNAME <- sub('County', '', age_65$CTYNAME)
+```
+
+```{r}
+age_sample_65 <- age_65 %>%
+  mutate(CTYNAME = trimws(CTYNAME, which = "right"),
+         TOT_POP = as.numeric(TOT_POP)) %>%
+  group_by(STNAME, CTYNAME, YEAR) %>%
+  summarise(pop.65 = sum(TOT_POP), .groups = "drop") %>%
+  mutate(YEAR = ifelse(YEAR == 3, "pop_2010_65", "pop_2020_65")) %>%
+  pivot_wider(names_from = YEAR, values_from = pop.65) %>%
+  mutate(st_cty = paste(STNAME, CTYNAME, sep="")) %>%
+  filter(st_cty %in% sample_st_cty | CTYNAME %in% c('Hawaii', 'San Francisco', 
+                                                    'Wrangell City and Borough', 
+                                                    'Emporia city', 'Salem city',
+                                                    'Radford city', 'De Witt',
+                                                    'Litchfield')) %>%
+  mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
+         CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
+         CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
+
+# join back
+sample_complete <- sample_w_pop2010 %>%
+  left_join(age_sample_65, by = join_by("state" == "STNAME", 
+                                        "county" == "CTYNAME")) %>%
+  select(-c(st_cty, fips)) %>%
+  relocate(pop_2020_65, .after = "THIRD") %>%
+  rename(pop.2020 = pop)
+```
+
+
+```{r}
+#write.csv(sample_complete, file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample_complete.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
