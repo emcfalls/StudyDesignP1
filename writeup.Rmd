@@ -200,16 +200,18 @@ Kentucky| 4                | North Dakota|  1          |District of Columbia*| 1
 
 *certainty primary sampling unit
 
-Here is the final sample data:
-
 ```{r}
-sample_complete <- read.csv("sample_complete.csv")
-formattable(head(sample_complete[,c(1:8)]))
+sample_complete <- read.csv('sample_complete.csv')
 ```
 
 
 ```{r}
 sample_complete[61, 9] = 1
+```
+
+
+```{r}
+sample_complete <- sample_complete %>% mutate(hisp_change = hisp_2020-hisp_2010)
 ```
 
 
@@ -235,11 +237,42 @@ des <- svydesign(~1, strata = sample_complete$state,
 
 ## Amount of Hispanics and Latinos in the U.S. in 2020
 
+
+
 ## Change in the Amount of Hispanics and Latinos in the U.S. between 2010 and 2020
 
-```{r}
 
+```{r}
+svytotal(~hisp_change, des)
 ```
+
+```{r}
+confint(svytotal(~hisp_change, des))
+```
+
+
+We estimate that a total of 10,391,602 more U.S. residents identified as Hispanic or Latino in 2020 compared to 2010. We have a 95% confidence interval of (7,249,416, 13,533,788) for this estimate. 
+
+It's clear that a lot more Hispanic/Latino identifying Americans now compared to a decade ago. Out of curiosity, we also wanted to see if the proportion of Hispanic and Latinx residents rose over time. Since the total population data and Hispanic/Latino data came from two different sources, we will use a ratio estimate to estimate both quantities then divide.
+
+```{r}
+# hipanic pop in 2010
+svyratio(~hisp_2010, ~pop.2010, des)
+```
+
+```{r}
+confint(svyratio(~hisp_2010, ~pop.2010, des))
+```
+
+```{r}
+# hipanic pop in 2020
+svyratio(~hisp_2020, ~pop.2020, des)
+```
+```{r}
+confint(svyratio(~hisp_2020, ~pop.2020, des))
+```
+
+We estimate that the percentage of Hispanic and Latino residents in 2010 was 18.17% (95% CI: (13.84%, 22.5%)) while the same statistic in 2020 was estimated to be 20.62% (95% CI: (16.1%, 25.15%)). These results show that we estimate the proportion of Hispanic and Latino residents to be higher in 2020 compared to 2010, but the overlapping confidence intervals suggest this is not a significant difference. 
 
 
 ## Partisan Breakdown in the U.S. in 2020
@@ -248,9 +281,13 @@ des <- svydesign(~1, strata = sample_complete$state,
 # percentage of people who voted republican
 svyratio(~REPUBLICAN, ~totalvotes, des)
 ```
+
 ```{r}
 confint(svyratio(~REPUBLICAN, ~totalvotes, des))
 ```
+
+
+We estimate that 48.39% of voters in the 2020 election voted for Trump and the Republican party. We have a 95% confidence interval of (45.02%, 51.77%). Based on the 2020 Presidential Popular Vote Summary, we are 1.54% off from the actual total of 46.85% ([source](https://www.fec.gov/resources/cms-content/documents/federalelections2020.pdf)). 
 
 
 ```{r}
@@ -261,10 +298,53 @@ svyratio(~DEMOCRAT, ~totalvotes, des)
 confint(svyratio(~DEMOCRAT, ~totalvotes, des))
 ```
 
+We also predict that 49.91% of voters in the 2020 election voted for Biden and the Democratic part. We have a 95% confidence interval of (46.49%, 53.34%). Using the same resource as before, are estimate is off by 1.4%. The actual percentage is 51.31% ([source](https://www.fec.gov/resources/cms-content/documents/federalelections2020.pdf)). 
 
 ```{r}
 # percentage of people who voted third party
 svyratio(~THIRD, ~totalvotes, des)
 ```
 
+```{r}
+confint(svyratio(~THIRD, ~totalvotes, des))
+```
+
+Finally, the expected percentage of voters who voted for a third party in the 2020 election was 1.69%. This estimate had a 95% confidence interval of (1.57%, 1.82%). Given the actual value of 1.18%, we are off by 0.51% ([source](https://www.fec.gov/resources/cms-content/documents/federalelections2020.pdf)). This is a relatively large difference which is reflected by our confidence interval which does not include the true percentage value. Overall, it is clear that our survey design did not adequately estimate this quantity. 
+
+The partisanship results from the 2020 election indicate how close it was. The 95% confidence intervals for the Republican and the Democratic party overlap each other by a great deal. 
+
+
 ## Change in Proportion of 65+ Population Overtime
+
+```{r}
+# proportion of residents 65 and over in 2010
+svyratio(~pop_2010_65, ~pop.2010, des)
+```
+
+```{r}
+# CI for proportion of residents 65 and over in 2010
+confint(svyratio(~pop_2010_65, ~pop.2010, des))
+```
+
+We expect that roughly 13.1% of residents in the U.S. were 65 and over in 2010. Our 95% confidence interval for this estimate is (12.6%, 13.7%).  
+
+```{r}
+# proportion of residents 65 and over in 2020
+svyratio(~pop_2020_65, ~pop.2020, des)
+```
+
+```{r}
+# CI for proportion of residents 65 and over in 2020
+confint(svyratio(~pop_2020_65, ~pop.2020, des))
+```
+
+Moreover, we estimate that the percentage of U.S. residents who are 65 and over in 2020 was 16.8%. We have a 95% confidence interval of (16.1%, 17.5%) for this estimate. 
+
+Given that our confidence intervals do not overlap, we have some evidence to suggest that proportion of residents in the U.S. who are 65 and over was higher in 2020 than in 2010. In other words, people in the U.S. have gotten older overtime (more evidence from the Census Bureau: [source](https://www.census.gov/newsroom/press-releases/2023/population-estimates-characteristics.html#:~:text=New%20Population%20Estimates%20Highlight%20Increase,by%20the%20U.S.%20Census%20Bureau)). Future studies may seek to model the trajection of the 65+ age group to determine if this trend is present throughout multiple decades. We may also want to run a regression to see what factors are significantly associated with this pattern while controlling for other variables. These results could aid in understanding the growth of the 65+ age group and what this growth may mean for future health care policies, social security benefits, and so on.  
+
+
+
+
+
+
+
