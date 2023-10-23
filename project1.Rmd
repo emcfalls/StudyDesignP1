@@ -252,29 +252,32 @@ The final matched sample dataset incorporates new information as follows:
 
 
 
-## Hispanic / Latino Population
+## Hispanic or Latino Population
+
+We have efficiently sourced valuable demographic information from the [Annual County Resident Population Estimates by Age, Sex, Race, and Hispanic Origin](https://www.census.gov/programs-surveys/popest/technical-documentation/research/evaluation-estimates/2020-evaluation-estimates/2010s-county-detail.html), meticulously compiled by the U.S. Census Bureau's Vintage 2020 Population Estimates. To streamline our data collection efforts, we opted for a comprehensive nationwide dataset containing generalized county-level data, rather than engaging in individual county-specific collection. 
+
+Focusing on the pivotal years 2020 and 2010, and with a specific interest in the Hispanic or Latino population (regardless of race), we meticulously filtered the dataset. We isolated the data for the years corresponding to July 1, 2020 (identified as `YEAR` == 13) and July 1, 2010 (identified as `YEAR` == 3), targeting the age group encompassing the total population (defined as `AGEGRP` == 0). In adherence to the [official data documentation](https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2010-2020/cc-est2020-alldata.pdf), we successfully extracted the desired Hispanic population figures, including both males and females. With adept data manipulation, we harmonized these Hispanic variables and integrated them back into our sample dataframe, addressing any discrepancies in county names through a diligent manual correction process.
  
-  - 2020
+### 2020 Data Collection
 
 ```{r}
-# estimates 7/1/2020
+# Estimates 7/1/2020
 hispanic_data_2020 <- 
   read.csv('/Users/hollycui/Desktop/STA\ 522/Project1/demo_2010_2020.csv') %>% 
   filter(YEAR == 13, AGEGRP == 0) %>%
   select(STNAME, CTYNAME, H_MALE, H_FEMALE) 
-```
 
-```{r}
-# remove "County" from names
-# weird ch in new mexico county name, not in sample
+# Remove "County" from names
+# Weird character in new mexico county name (not in sample)
 hispanic_data_2020 <- hispanic_data_2020[-c(1804),]
 hispanic_data_2020$CTYNAME <- sub('County', '', hispanic_data_2020$CTYNAME)
 ```
 
 ```{r}
+# Retrieve sample combined info of state and county
 sample_st_cty <- (sample %>% mutate(st_cty = paste(state, county, sep="")))$st_cty
 
-# keep counties in the sample
+# Keep counties in the sample
 hispanic_sample_2020 <- hispanic_data_2020 %>%
   mutate(CTYNAME = trimws(CTYNAME, which = "right"),
          n_hispanic = as.numeric(H_MALE) + as.numeric(H_FEMALE),
@@ -284,16 +287,14 @@ hispanic_sample_2020 <- hispanic_data_2020 %>%
                                                     'Emporia city', 'Salem city',
                                                     'Radford city', 'De Witt',
                                                     'Litchfield')) %>%
-  # rename county names
+  # Rename county names that have discrepencies
   mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
          CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
-  
-```
 
-```{r}
+# Join back with sample data
 sample_w_hisp2020 <- sample_w_vote %>%
   mutate(state = ifelse(county == "Hawaii", "Hawaii", state)) %>%
   left_join(hispanic_sample_2020, by = join_by("state" == "STNAME", 
@@ -303,28 +304,22 @@ sample_w_hisp2020 <- sample_w_vote %>%
   relocate(hisp_2020, .after = "pop_density")
 ```
 
-
-  - 2010
+### 2010 Data Collection
     
 ```{r}
-# estimates 7/1/2010
+# Estimates 7/1/2010
 hispanic_data_2010 <- read.csv('demo_2010_2020.csv') %>% 
   filter(YEAR == 3, AGEGRP == 0) %>%
   select(STNAME, CTYNAME, H_MALE, H_FEMALE) 
-  
-head(hispanic_data_2010)
-```
 
-```{r}
-# remove county from names
-# weird ch in new mexico county name, not in sample
+# Remove county from names
+# Weird ch in new mexico county name, not in sample
 hispanic_data_2010 <- hispanic_data_2010[-c(1804),]
 hispanic_data_2010$CTYNAME <- sub('County', '', hispanic_data_2010$CTYNAME)
 ```
 
-
 ```{r}
-# keep counties in the sample
+# Keep counties in the sample
 hispanic_sample_2010 <- hispanic_data_2010 %>%
   mutate(CTYNAME = trimws(CTYNAME, which = "right"),
          n_hispanic = as.numeric(H_MALE) + as.numeric(H_FEMALE),
@@ -334,16 +329,14 @@ hispanic_sample_2010 <- hispanic_data_2010 %>%
                                                     'Emporia city', 'Salem city',
                                                     'Radford city', 'De Witt',
                                                     'Litchfield')) %>%
-    # rename county names
+    # Rename county names
   mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
          CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
-```
 
-
-```{r}
+# Join back with sample data
 sample_w_hisp2010 <- sample_w_hisp2020 %>%
   left_join(hispanic_sample_2010, by = join_by("state" == "STNAME", 
                                                "county" == "CTYNAME")) %>%
@@ -352,26 +345,33 @@ sample_w_hisp2010 <- sample_w_hisp2020 %>%
   relocate(hisp_2010, .after = "hisp_2020")
 ```
 
+The final matched sample dataset incorporates new information as follows: 
 
-  - Q5 exploration: Aging of population (estimate proportion of age 65+ in 2020 and 2010)
+  - `hisp_2020` is the population of Hispanic or Latino (any race) in the county in 2020
+  - `hisp_2010` is the population of Hispanic or Latino (any race) in the county in 2010
+
+
+## Exploration: Aging of the U.S. Population 
+
+In the process of framing our exploratory question, we leveraged the rich resources of [official Census data](https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/counties/asrh/CC-EST2020-ALLDATA.csv), which provide detailed demographic information, including age group distributions. The specific question we developed is as follows:
+
+**What is the estimated percentage of the U.S. population aged 65 or above in both 2020 and 2010?**
+
+Our approach involves analyzing the population percentage of seniors with a 10-year interval, a method that promises insights into the evolving age composition in the United States. This analysis sheds light on changes in age demographics and illuminates the challenges and opportunities presented by population aging, which are of paramount importance for future studies and decision-making. To execute this investigation, we have adopted a consistent approach, honing in on the specific age range (`AGEGRP` >= 14) across each county for the selected years. We have further bolstered our analysis by incorporating total population figures by county from 2010, which is instrumental in calculating precise population percentages.
   
-    - Get 2010 population data by county:
+### 2010 Population Data by County:
+
 ```{r}
 pop_2010 <- read.csv('demo_2010_2020.csv') %>% 
   filter(YEAR == 3 & AGEGRP == 0) %>%
   select(STNAME, CTYNAME, TOT_POP)
 
-head(pop_2010)
-```
-```{r}
-# remove county from names
-# weird ch in new mexico county name, not in sample
 pop_2010 <- pop_2010[-1804,]
 pop_2010$CTYNAME <- sub('County', '', pop_2010$CTYNAME)
 ```
 
 ```{r}
-# keep counties in the sample
+# Keep counties in the sample
 pop_sample_2010 <- pop_2010 %>%
   mutate(CTYNAME = trimws(CTYNAME, which = "right"),
          pop.2010 = as.numeric(TOT_POP),
@@ -381,14 +381,14 @@ pop_sample_2010 <- pop_2010 %>%
                                                     'Emporia city', 'Salem city',
                                                     'Radford city', 'De Witt',
                                                     'Litchfield')) %>%
-    # rename county names
+    # Rename county names
   mutate(CTYNAME = ifelse(CTYNAME == "Wrangell City and Borough", "Wrangell", CTYNAME), 
          CTYNAME = ifelse(CTYNAME == "De Witt", "DeWitt", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Emporia city", "Emporia", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
 
-# join back
+# Join back
 sample_w_pop2010 <- sample_w_hisp2010 %>%
   left_join(pop_sample_2010, by = join_by("state" == "STNAME", 
                                           "county" == "CTYNAME")) %>%
@@ -396,19 +396,13 @@ sample_w_pop2010 <- sample_w_hisp2010 %>%
   relocate(pop.2010, .after = "pop")
 ```
 
-    - Get 65+ age group by county:
+### 65+ Age Group Population by County:
     
 ```{r}
 age_65 <- read.csv('demo_2010_2020.csv') %>% 
   filter(YEAR %in% c(3, 13) & AGEGRP >= 14) %>%
   select(STNAME, CTYNAME, YEAR, AGEGRP, TOT_POP)
-  
-head(age_65)
-```
 
-```{r}
-# remove county from names
-# weird ch in new mexico county name, not in sample
 age_65 <- age_65[-c(18031:18040),]
 age_65$CTYNAME <- sub('County', '', age_65$CTYNAME)
 ```
@@ -433,7 +427,7 @@ age_sample_65 <- age_65 %>%
          CTYNAME = ifelse(CTYNAME == "Radford city", "Radford", CTYNAME),
          CTYNAME = ifelse(CTYNAME == "Salem city", "Salem", CTYNAME))
 
-# join back
+# Join back
 sample_complete <- sample_w_pop2010 %>%
   left_join(age_sample_65, by = join_by("state" == "STNAME", 
                                         "county" == "CTYNAME")) %>%
@@ -442,16 +436,22 @@ sample_complete <- sample_w_pop2010 %>%
   rename(pop.2020 = pop)
 ```
 
-
 ```{r}
 # write.csv(sample_complete, 
 #           file = "/Users/hollycui/Desktop/STA\ 522/Project1/sample_complete.csv",
 #           row.names = FALSE)
 ```
 
+The final matched sample dataset incorporates new information as follows: 
+
+  - `pop.2010` is the total population in each county in 2010
+  - `pop_2020_65` is the population of age 65+ in each county in 2020
+  - `pop_2010_65` is the population of age 65+ in each county in 2010
 
 
 # Estimations
+
+(Add descriptions here! - mention svyratio() use for more accurate percentage estimate)
 
 ```{r}
 sample_complete <- 
@@ -470,7 +470,7 @@ des <- svydesign(~1,
                  data = sample_complete)
 ```
 
-  - Q1
+## What is an estimate of the average population density per county in the U.S. in 2020?
 
 ```{r}
 svymean(~pop_density, des)
@@ -478,14 +478,14 @@ confint(svymean(~pop_density, des))
 ```
 
 
-  - Q2
+## What is an estimate of the total number of people in the U.S. in 2020 who identify as Hispanic or Latino, any race?
   
 ```{r}
 svytotal(~hisp_2020, des)
 confint(svytotal(~hisp_2020, des))
 ```
 
-  - Q3
+## What is an estimate of the total change in the number of people in the U.S. who identify as Hispanic or Latino, any race, between the 2010 and 2020 censuses?
   
 ```{r}
 # Method 1
@@ -502,39 +502,68 @@ svytotal(~change, des1)
 confint(svytotal(~change, des1))
 ```
 
+We estimate that a total of 10,391,602 more U.S. residents identified as Hispanic or Latino in 2020 compared to 2010. We have a 95% confidence interval of (7,249,416, 13,533,788) for this estimate. 
 
-  - Q4
+It's clear that a lot more Hispanic/Latino identifying Americans now compared to a decade ago. Out of curiosity, we also wanted to see if the proportion of Hispanic and Latinx residents rose over time. Since the total population data and Hispanic/Latino data came from two different sources, we will use a ratio estimate to estimate both quantities then divide.
+
+```{r}
+# Hipanic pop in 2010
+svyratio(~hisp_2010, ~pop.2010, des)
+confint(svyratio(~hisp_2010, ~pop.2010, des))
+
+# Hipanic pop in 2020
+svyratio(~hisp_2020, ~pop.2020, des)
+confint(svyratio(~hisp_2020, ~pop.2020, des))
+```
+
+We estimate that the percentage of Hispanic and Latino residents in 2010 was 18.17% (95% CI: (13.84%, 22.5%)) while the same statistic in 2020 was estimated to be 20.62% (95% CI: (16.1%, 25.15%)). These results show that we estimate the proportion of Hispanic and Latino residents to be higher in 2020 compared to 2010, but the overlapping confidence intervals suggest this is not a significant difference. 
+
+
+## What are estimates of the percentages of people in 2020 in the U.S. who voted Republican? How about Democrat? How about a third party?
   
 ```{r}
 svyratio(~REPUBLICAN, ~totalvotes, des)
 confint(svyratio(~REPUBLICAN, ~totalvotes, des))
+```
 
+We estimate that 48.39% of voters in the 2020 election voted for Trump and the Republican party. We have a 95% confidence interval of (45.02%, 51.77%). Based on the 2020 Presidential Popular Vote Summary, we are 1.54% off from the [actual total of 46.85%](https://www.fec.gov/resources/cms-content/documents/federalelections2020.pdf).
+
+```{r}
 svyratio(~DEMOCRAT, ~totalvotes, des)
 confint(svyratio(~DEMOCRAT, ~totalvotes, des))
+```
 
+We also predict that 49.91% of voters in the 2020 election voted for Biden and the Democratic part. We have a 95% confidence interval of (46.49%, 53.34%). Using the same resource as before, are estimate is off by 1.4%. The [actual percentage is 51.31%](https://www.fec.gov/resources/cms-content/documents/federalelections2020.pdf).
+
+```{r}
 svyratio(~THIRD, ~totalvotes, des)
 confint(svyratio(~THIRD, ~totalvotes, des))
 ```
 
+Finally, the expected percentage of voters who voted for a third party in the 2020 election was 1.69%. This estimate had a 95% confidence interval of (1.57%, 1.82%). Given the [actual value of 1.18%](https://www.fec.gov/resources/cms-content/documents/federalelections2020.pdf), we are off by 0.51%. This is a relatively large difference which is reflected by our confidence interval which does not include the true percentage value. Overall, it is clear that our survey design did not adequately estimate this quantity. 
 
-  - Q5
+The partisanship results from the 2020 election indicate how close it was. The 95% confidence intervals for the Republican and the Democratic party overlap each other by a great deal. 
+
+
+## What is the estimated percentage of the U.S. population aged 65 or above in both 2020 and 2010?
   
 ```{r}
 # Proportion of US population age 65+ in 2020
 svyratio(~pop_2020_65, ~pop.2020, des)
 confint(svyratio(~pop_2020_65, ~pop.2020, des))
+```
 
+We estimate that the percentage of U.S. residents who are 65 and over in 2020 was 16.8%. We have a 95% confidence interval of (16.1%, 17.5%) for this estimate. 
+
+```{r}
 # Proportion of US population age 65+ in 2010
 svyratio(~pop_2010_65, ~pop.2010, des)
 confint(svyratio(~pop_2010_65, ~pop.2010, des))
 ```
 
+We expect that roughly 13.1% of residents in the U.S. were 65 and over in 2010. Our 95% confidence interval for this estimate is (12.6%, 13.7%).  
 
-
-
-
-
-
+Given that our confidence intervals do not overlap, we have some evidence to suggest that proportion of residents in the U.S. who are 65 and over was higher in 2020 than in 2010. In other words, people in the U.S. have gotten older overtime (more evidence from [the Census Bureau](https://www.census.gov/newsroom/press-releases/2023/population-estimates-characteristics.html#:~:text=New%20Population%20Estimates%20Highlight%20Increase,by%20the%20U.S.%20Census%20Bureau)). Future studies may seek to model the trajection of the 65+ age group to determine if this trend is present throughout multiple decades. We may also want to run a regression to see what factors are significantly associated with this pattern while controlling for other variables. These results could aid in understanding the growth of the 65+ age group and what this growth may mean for future health care policies, social security benefits, and so on.  
 
 
 
